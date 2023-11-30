@@ -6,77 +6,52 @@
 const express = require('express');
 const router = express.Router();
 const Actions = require('./actions-model');
-
-
+const { validateBody, validateParentId} = require('./actions-middlware')
+ 
 // [GET] /api/actions
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
+  const actions = await Actions.get()
   try {
-    const actions = await Actions.get(); // Get all actions from the database
+  // Get all actions from the database
 
     // Check if there are actions available
-    if (actions.length > 0) {
       return res.status(200).json(actions); // Respond with all actions
-    } else {
-      return res.status(200).json([]); // Respond with an empty array if no actions exist
-    }
-  } catch (error) {
-    return res.status(500).json({ message: 'Error retrieving actions' });
+    
+  } catch (err) {
+  next(err)
   }
 });
 
-// [GET] /api/actions/:id
-router.get('/:id', async (req, res) => {
-  const { id } = req.params;
-  console.log(`Received request for action ID: hipppy blah hiplah ${id}`);
 
-  try {
-    const action = await Actions.getById(id); // Retrieve action by ID using the model method
-    console.log('Retrieved action:', action);
 
-    if (action) {
-      res.status(200).json(action); // Respond with the action if found
-    } else {
-      console.log('Action not found');
-      res.status(404).json({ message: 'Action not found' }); // Respond with 404 if action with ID doesn't exist
-    }
-  } catch (error) {
-    console.error('Error retrieving action:', error);
-    res.status(500).json({ message: 'Error retrieving action' }); // Respond with 500 if an error occurs
-  }
+
+router.get('/:id',  (req, res, next) => {
+  Actions.get(req.params.id)
+    .then((actionId) => {
+      console.log(actionId)
+      if (!actionId) {
+        res.status(404).json({
+          message: 'No action with given id'
+        })
+      } else {
+        res.json(actionId)
+      }
+        
+    }).catch((err) => {
+    next(err) 
+    }) 
+  
 });
-// router.get('/:id', async (req, res) => {
-//   const { id } = req.params;
-
-//   try {
-//     const action = await Actions.getById(id); // Retrieve action by ID using the model method
-//     if (action) {
-//       res.status(200).json(action); // Respond with the action if found
-//     } else {
-//       res.status(404).json({ message: 'Action not found' }); // Respond with 404 if action with ID doesn't exist
-//     }
-//   } catch (error) {
-//     res.status(500).json({ message: 'Error retrieving action' }); // Respond with 500 if an error occurs
-//   }
-// });
-
 
 
 // [POST] /api/actions
-router.post('/', async (req, res) => {
-  const newActionData = req.body;
-
-  try {
-    // Check for missing required fields
-    if (!newActionData.notes || !newActionData.description || !newActionData.project_id) {
-      return res.status(400).json({ message: 'Missing required fields' });
-    }
-
-    const createdAction = await Actions.create(newActionData); // Create a new action
-    res.status(201).json(createdAction); // Respond with the newly created action
-  } catch (error) {
-    res.status(400).json({ message: 'Error creating the action' }); // Respond with 400 on error
-  }
-});
+router.post('/', validateBody, validateParentId, (req, res, next) => {
+  Actions.insert(req.body)
+    .then((newAction) => {
+    res.status(200).json(newAction)
+    })
+  .catch(next)
+})
 
 
 router.put('/:id', async (req, res) => {
@@ -110,22 +85,12 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-router.get('/:id/actions', async (req, res) => {
-  const { id } = req.params;
-  
-  try {
-    const project = await Actions.get(id);
 
-    if (!project) {
-      return res.status(404).json({ message: 'Project not found' });
-    }
 
-    const actions = await Actions.getActionsByid(id);
-
-    res.status(200).json(actions);
-  } catch (err) {
-    res.status(500).json({ message: 'Error retrieving project actions' });
-  }
-});
+router.use((err, req, res, next) => { // eslint-disable-line  
+  res.status(err.status || 500).json({
+    message: err.message
+  })
+})
 
 module.exports = router;

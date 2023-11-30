@@ -104,7 +104,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// [GET] /api/projects/:id/actions
+// [GET] /api/projects/:id/actions-
 router.get('/:id/actions', async (req, res) => {
   const { id } = req.params;
   try {
