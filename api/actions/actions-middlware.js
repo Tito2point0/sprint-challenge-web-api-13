@@ -2,21 +2,28 @@
 const Project = require("../projects/projects-model");
 
 function validateBody(req, res, next) {
-  const { notes, description } = req.body;
-  if (
-    notes !== undefined &&
-    typeof notes == "string" &&
-    notes.trim().length &&
-    description !== undefined &&
-    description.trim().length
-  ) {
+    let { notes, description } = req.body;
+    
+    // Trim white spaces from notes and description if they are strings
+    if (typeof notes === "string") {
+      notes = notes.trim();
+    }
+    if (typeof description === "string") {
+      description = description.trim();
+    }
+  
+    if (notes !== undefined && notes && description !== undefined && description) {
+      // Update the request body with trimmed values
+      req.body.notes = notes;
+      req.body.description = description;
       next();
-  } else {
+    } else {
       res.status(400).json({
-          message: 'Body fields missing '
-      })
+        message: 'Body fields missing or empty after trimming whitespace'
+      });
+    }
   }
-}
+  
 
 async function validateParentId(req, res, next) {
     const { project_id } = req.body;
